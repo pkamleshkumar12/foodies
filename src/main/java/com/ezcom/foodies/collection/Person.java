@@ -10,7 +10,7 @@ import java.util.List;
 
 @Data
 @Builder
-@Document(collation = "Person")
+@Document("Person")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Person {
 
