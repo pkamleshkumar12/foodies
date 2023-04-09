@@ -10,6 +10,7 @@ import com.ezcom.foodies.repository.TagRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -104,21 +105,40 @@ public class RestaurantServiceImpl implements RestaurantService{
 
     @Override
     public List<Restaurant> searchRestaurants(String searchText, boolean sortByFastestDelivery, boolean filterByPromotionExist, String tagId) {
-        List<Restaurant> restaurants = restaurantRepository.findByNameOrItemsName(searchText);
+
+        List<Restaurant> restaurants = new ArrayList<>();
+
+        // Find restaurants by name
+        restaurants.addAll(restaurantRepository.findByNameContainingIgnoreCase(searchText));
+
+        // Find restaurants by items name
+        List<Restaurant> restaurantsByItemName = restaurantRepository.findByMenuNameContainingIgnoreCase(searchText);
+        for (Restaurant restaurant : restaurantsByItemName) {
+            if (!restaurants.contains(restaurant)) {
+                restaurants.add(restaurant);
+            }
+        }
+
         if (filterByPromotionExist) {
-            restaurants = restaurants.stream().filter(r -> r.getPromotions() != null && !r.getPromotions().isEmpty())
+            restaurants = restaurants.stream()
+                    .filter(r -> r.getPromotions() != null && !r.getPromotions().isEmpty())
                     .collect(Collectors.toList());
         }
+
         if (tagId != null) {
             Optional<Tag> tag = tagRepository.findById(tagId);
             if (tag.isPresent()) {
-                restaurants = restaurants.stream().filter(r -> r.getTags() != null && r.getTags().contains(tag.get()))
+                restaurants = restaurants.stream()
+                        .filter(r -> r.getTags() != null && r.getTags().contains(tag.get()))
                         .collect(Collectors.toList());
             }
         }
+
         if (sortByFastestDelivery) {
             restaurants.sort(Comparator.comparingInt(Restaurant::getEstimatedDeliveryTime));
         }
+
         return restaurants;
+
     }
 }
